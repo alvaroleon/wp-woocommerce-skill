@@ -1,0 +1,55 @@
+{
+  "skill_name": "wp-woocommerce",
+  "description": "Smoke evals for wp-woocommerce on WooCommerce 11.2.1 (WP 7.0, HPOS only, Cart/Checkout blocks only, full-page HTML cache). Nothing classic.",
+  "evals": [
+    {
+      "id": 1,
+      "name": "clp-gateway-block-checkout",
+      "prompt": "Plugin mtr-pagos para WooCommerce 11.2.1 (HPOS activo, checkout con el bloque Checkout, moneda CLP). Necesito una pasarela de pago redirect a un proveedor chileno: crea el cobro por API, redirige al cliente, y el proveedor confirma por webhook firmado con HMAC-SHA256 (header X-Signature). Debe soportar reembolsos. Dame el código PHP y JS completo para que aparezca y funcione en el bloque Checkout.",
+      "expected_output": "WC_Payment_Gateway subclass with zero-decimal-safe amounts (no *100 for CLP), process_payment returning redirect without emptying the cart before payment, refunds with supports=refunds; webhook via REST route or woocommerce_api_ with hash_equals HMAC check on raw body and idempotency; HPOS compatibility declared incl. cart_checkout_blocks; AbstractPaymentMethodType registered on woocommerce_blocks_payment_method_type_registration + JS registerPaymentMethod with canMakePayment/content/label; Requires Plugins header.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "name": "checkout-block-extra-fields",
+      "prompt": "En la tienda (WooCommerce 11.2.1, bloque Checkout, caché de HTML completa) necesito pedir RUT del cliente (obligatorio, validado con dígito verificador) en la sección de contacto y una 'fecha de entrega preferida' opcional para el pedido. Que se guarden en el pedido, se vean en el admin del pedido y en los correos. Dame el código.",
+      "expected_output": "Uses the Additional Checkout Fields API (woocommerce_register_additional_checkout_field on woocommerce_init) with location contact/order, validate_callback / sanitize_callback, reads values via CheckoutFields service; does not rely on woocommerce_checkout_fields / woocommerce_checkout_update_order_meta for the block checkout; no nonces or cart state printed in HTML.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "name": "hpos-order-metabox-query",
+      "prompt": "Plugin mtr-despachos: en la pantalla de edición del pedido (HPOS activo) quiero una caja lateral con el número de seguimiento y el courier, editable y guardada en el pedido. Además un comando WP-CLI que liste los pedidos 'processing' de los últimos 7 días sin número de seguimiento. Dame el código completo.",
+      "expected_output": "declare_compatibility custom_order_tables; add_meta_boxes on wc_get_page_screen_id('shop-order') with a callback that receives a WC_Order (no 'shop_order' post screen / OrderUtil branch); save on woocommerce_process_shop_order_meta with nonce + capability check, $order->update_meta_data()+save(); wc_get_orders with status, date_created and meta_query NOT EXISTS (or empty); no get_post_meta / WP_Query on shop_order.",
+      "files": []
+    },
+    {
+      "id": 4,
+      "name": "custom-status-email",
+      "prompt": "Quiero un estado de pedido nuevo 'Despachado' (wc-despachado) y que al pasar de processing a despachado se le envíe al cliente un correo con el link de seguimiento. WooCommerce 11.2.1 con HPOS. Dame el código, incluyendo las plantillas del correo.",
+      "expected_output": "Registers status via wc_order_statuses plus woocommerce_register_shop_order_post_statuses so it works under HPOS; WC_Email subclass registered via woocommerce_email_classes, triggered from woocommerce_order_status_processing_to_despachado_notification after adding it to woocommerce_email_actions; covers the block email editor (block template / compatibility) as the primary path.",
+      "files": []
+    },
+    {
+      "id": 5,
+      "name": "header-cart-count-free-shipping",
+      "prompt": "Block theme propio con WooCommerce 11.2.1 y caché de página completa en Cloudflare para home, categorías y fichas. Quiero en el header un ícono de carro con el número de productos, en las cards del home un botón 'Agregar' que no recargue la página, y en la ficha un aviso 'Te faltan $X para despacho gratis' según lo que lleve el carro. Dame el código.",
+      "expected_output": "Uses the Mini-Cart block (or Store API client-side) for the count; add-to-cart via core product button/add-to-cart blocks or Store API POST cart/add-item from JS with the Nonce header persisted as localStorage storeApiNonce; free-shipping notice computed client-side from Store API cart totals (or wc/store/cart data store); no WC()->cart / WC()->session / wp_create_nonce in render.php or templates, no cart fragments, no custom Cart-Token in localStorage, no wp_localize_script with per-user data.",
+      "files": []
+    },
+    {
+      "id": 6,
+      "name": "erp-sync-background",
+      "prompt": "Plugin mtr-erp: cada 15 minutos hay que traer el stock desde la API del ERP (unos 300 SKU) y actualizar los productos, y cada pedido que queda pagado hay que enviarlo al ERP (si el ERP falla, reintentar). WooCommerce 11.2.1, HPOS. Dame el código.",
+      "expected_output": "Action Scheduler only: as_schedule_recurring_action (or cron action) guarded by as_has_scheduled_action, unique, group; batch SKUs into chunks of async actions; on order paid (woocommerce_order_status_processing / payment_complete) enqueue as_enqueue_async_action with the order id instead of calling the ERP inline; retries via rescheduling with backoff; products updated via CRUD (wc_get_product_id_by_sku, set_stock_quantity, save) not update_post_meta; order meta via $order->update_meta_data; no wp_schedule_event / WP-Cron.",
+      "files": []
+    },
+    {
+      "id": 7,
+      "name": "custom-block-store-api-js",
+      "prompt": "Necesito un bloque propio 'Llévalo en caja' en la ficha de producto: un botón que agrega al carro la caja de 12 del mismo vino (otro producto simple, su ID viene en un atributo del bloque) y abre el mini-carro. La ficha está cacheada en Cloudflare. Dame block.json, render.php y el JS.",
+      "expected_output": "Interactivity API or view script that POSTs /wc/store/v1/cart/add-item with credentials same-origin and the Nonce header from localStorage storeApiNonce (refreshing it from each response's Nonce header), or dispatches the wc/store/cart data store / woocommerce iAPI store addCartItem so the Mini-Cart updates; render.php prints only static product data (no nonce, no cart state); no custom Cart-Token in localStorage; no admin-ajax / wc-ajax add_to_cart.",
+      "files": []
+    }
+  ]
+}
